@@ -33,6 +33,11 @@ const indexHTML = `
   </header>
 
   <section>
+    <h2>Trending Now</h2>
+    <div class="grid" id="trending"></div>
+  </section>
+
+  <section>
     <h2>Sci-Fi Classics</h2>
     <div class="grid" id="scifi"></div>
   </section>
@@ -58,16 +63,13 @@ const player = document.getElementById('player');
 const closeBtn = document.getElementById('closeBtn');
 const searchInput = document.getElementById('search');
 
-// Load categories
-const collections = {
-  scifi: "sciencefiction",
-  horror: "horror",
-  comedy: "comedyfilms"
-};
-
-async function loadCollection(collection, elementId) {
+// Load collections by name
+async function loadCollection(collection, elementId, sort = "") {
   try {
-    const url = \`https://archive.org/advancedsearch.php?q=collection:\${collection}+mediatype:movies&fl[]=identifier,title&rows=12&page=1&output=json\`;
+    let url = \`https://archive.org/advancedsearch.php?q=collection:\${collection}+mediatype:movies&fl[]=identifier,title&rows=12&page=1&output=json\`;
+    if (sort) {
+      url = \`https://archive.org/advancedsearch.php?q=mediatype:movies&fl[]=identifier,title&sort[]=\${sort}&rows=12&page=1&output=json\`;
+    }
     const res = await fetch(url);
     const data = await res.json();
     const movies = data.response.docs || [];
@@ -84,7 +86,7 @@ async function loadCollection(collection, elementId) {
       container.appendChild(card);
     });
   } catch (err) {
-    console.error("Error loading collection", collection, err);
+    console.error("Error loading", collection, err);
   }
 }
 
@@ -132,6 +134,7 @@ searchInput.addEventListener('keyup', async e => {
 });
 
 // Initial load
+loadCollection("movies", "trending", "downloads+desc"); // trending by most downloaded
 loadCollection("sciencefiction", "scifi");
 loadCollection("horror", "horror");
 loadCollection("comedyfilms", "comedy");
@@ -140,5 +143,5 @@ loadCollection("comedyfilms", "comedy");
 </html>
 `;
 
-fs.writeFileSync(\`\${OUTPUT_DIR}/index.html\`, indexHTML, "utf-8");
-console.log("✅ Site generated at /site/index.html");
+fs.writeFileSync(`${OUTPUT_DIR}/index.html`, indexHTML, "utf-8");
+console.log("✅ Site generated at /site/index.html with Trending Now section");
