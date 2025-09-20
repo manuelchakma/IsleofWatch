@@ -43,7 +43,7 @@ const closeBtn = document.getElementById('closeBtn');
 async function searchMovies(query) {
   resultsDiv.innerHTML = '<p style="text-align:center">Loading...</p>';
   try {
-    const url = \`https://archive.org/advancedsearch.php?q=\${encodeURIComponent(query)}&fl[]=identifier,title,description,downloads&rows=50&page=1&output=json\`;
+    const url = \`https://archive.org/advancedsearch.php?q=\${encodeURIComponent(query)}&fl[]=identifier,title,description,files&rows=50&page=1&output=json\`;
     const res = await fetch(url);
     const data = await res.json();
     const movies = data.response.docs || [];
@@ -56,10 +56,16 @@ async function searchMovies(query) {
 
 function renderResults(movies) {
   resultsDiv.innerHTML = '';
+
   movies.forEach(m => {
-    const file = Object.keys(m.downloads || {})[0] || '';
-    const videoUrl = file ? \`https://archive.org/download/\${m.identifier}/\${file}\` : '';
-    if(!videoUrl) return;
+    if (!m.files) return;
+
+    // find first playable mp4 or ogv
+    const playable = m.files.find(f => f.name && (f.name.endsWith('.mp4') || f.name.endsWith('.ogv')));
+    if (!playable) return;
+
+    const videoUrl = \`https://archive.org/download/\${m.identifier}/\${playable.name}\`;
+
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = \`
@@ -73,10 +79,16 @@ function renderResults(movies) {
     };
     resultsDiv.appendChild(card);
   });
+
+  if (resultsDiv.children.length === 0) {
+    resultsDiv.innerHTML = '<p style="text-align:center">No results found.</p>';
+  }
 }
 
 searchInput.addEventListener('keyup', e => {
-  if(e.key === 'Enter') searchMovies(searchInput.value);
+  if (e.key === 'Enter' && searchInput.value.trim() !== '') {
+    searchMovies(searchInput.value.trim());
+  }
 });
 
 closeBtn.onclick = () => {
