@@ -48,7 +48,7 @@ const modal = document.getElementById('modal');
 const player = document.getElementById('player');
 const closeBtn = document.getElementById('closeBtn');
 
-// Trending movies - add known public IA movies
+// Trending movies - known public IA movies
 const trendingMovies = [
   {identifier:'the-last-hunter-1980-film', title:'The Last Hunter'},
   {identifier:'alien-1979', title:'Alien'},
@@ -56,21 +56,37 @@ const trendingMovies = [
   {identifier:'night-of-the-living-dead-1968', title:'Night of the Living Dead'}
 ];
 
-function renderTrending() {
+// Fetch metadata and pick first playable file dynamically
+async function renderTrending() {
   trendingDiv.innerHTML = '';
-  trendingMovies.forEach(m => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <img src="https://archive.org/services/img/${m.identifier}" alt="${m.title}">
-      <h3>${m.title}</h3>
-    `;
-    card.onclick = () => {
-      player.src = `https://archive.org/download/${m.identifier}/${m.identifier}.mp4`;
-      modal.style.display = 'flex';
-      player.play();
-    };
-    trendingDiv.appendChild(card);
+
+  trendingMovies.forEach(async (m) => {
+    try {
+      const url = `https://archive.org/metadata/${m.identifier}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const files = data.files || [];
+      const playable = files.find(f => f.name && (f.name.endsWith('.mp4') || f.name.endsWith('.ogv')));
+      if (!playable) return;
+
+      const videoUrl = `https://archive.org/download/${m.identifier}/${playable.name}`;
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <img src="https://archive.org/services/img/${m.identifier}" alt="${m.title}">
+        <h3>${m.title}</h3>
+      `;
+      card.onclick = () => {
+        player.src = videoUrl;
+        modal.style.display = 'flex';
+        player.play();
+      };
+      trendingDiv.appendChild(card);
+
+    } catch (err) {
+      console.error(`Failed to load trending movie: ${m.identifier}`, err);
+    }
   });
 }
 
@@ -128,7 +144,7 @@ closeBtn.onclick = () => {
   modal.style.display = 'none';
 };
 
-// Render trending section on load
+// Render trending on page load
 renderTrending();
 </script>
 </body>
