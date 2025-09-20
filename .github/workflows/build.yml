@@ -10,19 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repo
-      uses: actions/checkout@v3
+    # Step 1: Checkout your repo
+    - uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
+    # Step 2: Install Node.js
+    - uses: actions/setup-node@v3
       with:
         node-version: '20'
 
+    # Step 3: Install required packages
     - name: Install dependencies
       run: |
-        npm init -y
         npm install axios fs-extra
 
+    # Step 4: Generate site HTML
     - name: Generate Site
       run: |
         node <<'EOF'
@@ -36,9 +37,9 @@ jobs:
           try {
             const url = 'https://archive.org/advancedsearch.php?q=collection:(movies)&fl[]=identifier,title,description,downloads&rows=50&page=1&output=json';
             const res = await axios.get(url);
-            return res.data.response.docs;
+            return res.data.response.docs || [];
           } catch (err) {
-            console.error('Error fetching movies:', err);
+            console.error('Fetch error:', err);
             return [];
           }
         }
@@ -82,6 +83,7 @@ jobs:
         generate();
         EOF
 
+    # Step 5: Deploy to GitHub Pages
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v6
       with:
