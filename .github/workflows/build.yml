@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout Repo
       uses: actions/checkout@v3
@@ -18,7 +19,9 @@ jobs:
         node-version: '20'
 
     - name: Install dependencies
-      run: npm install axios fs-extra
+      run: |
+        npm init -y
+        npm install axios fs-extra
 
     - name: Generate Site
       run: |
@@ -30,9 +33,14 @@ jobs:
         fs.ensureDirSync(OUTPUT_DIR);
 
         async function fetchMovies() {
-          const url = 'https://archive.org/advancedsearch.php?q=collection:(movies)&fl[]=identifier,title,description,downloads&rows=20&page=1&output=json';
-          const res = await axios.get(url);
-          return res.data.response.docs;
+          try {
+            const url = 'https://archive.org/advancedsearch.php?q=collection:(movies)&fl[]=identifier,title,description,downloads&rows=50&page=1&output=json';
+            const res = await axios.get(url);
+            return res.data.response.docs;
+          } catch (err) {
+            console.error('Error fetching movies:', err);
+            return [];
+          }
         }
 
         async function generate() {
