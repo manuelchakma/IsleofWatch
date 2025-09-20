@@ -36,7 +36,6 @@ h2 { padding-left:20px; font-size:1.5rem; margin-top:20px; }
   <input id="search" type="text" placeholder="Search movies, anime, TV series..." />
 </header>
 
-<!-- Featured Slider -->
 <div class="glide" id="featuredSlider" style="padding:20px 0;">
   <div class="glide__track" data-glide-el="track">
     <ul class="glide__slides" id="featuredSlides"></ul>
@@ -88,7 +87,6 @@ async function loadLatest() {
         const videoUrl = \`https://archive.org/embed/\${m.identifier}\`;
         const thumb = \`https://archive.org/services/img/\${m.identifier}\`;
 
-        // Featured slider: first 5 movies
         if (category === "Movies" && idx < 5) {
           const slide = document.createElement('li');
           slide.className = 'glide__slide';
@@ -97,7 +95,6 @@ async function loadLatest() {
           featuredSlides.appendChild(slide);
         }
 
-        // Category card
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = \`
@@ -105,10 +102,7 @@ async function loadLatest() {
           <div class="play-icon">&#9658;</div>
           <h3>\${m.title}</h3>
         \`;
-        card.onclick = () => {
-          player.src = videoUrl;
-          modal.style.display='flex';
-        };
+        card.onclick = () => { player.src = videoUrl; modal.style.display='flex'; };
         grid.appendChild(card);
       });
 
@@ -140,5 +134,5 @@ loadLatest();
 </html>
 `;
 
-fs.writeFileSync(\`\${OUTPUT_DIR}/index.html\`, indexHTML, "utf-8");
-console.log("✅ IsleofWatch modern site with slider & hover effects generated!");
+fs.writeFileSync(`${OUTPUT_DIR}/index.html`, indexHTML, "utf-8");
+console.log("✅ IsleofWatch modern site generated!");
