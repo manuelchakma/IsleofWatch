@@ -11,20 +11,25 @@ const indexHTML = `
 <title>IsleofWatch</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body { margin:0; font-family: Arial, sans-serif; background:#111; color:#fff; }
-header { padding:20px; text-align:center; background:#222; position:sticky; top:0; z-index:10; }
-header h1 { margin:0; }
-input#search { width:60%; padding:10px; font-size:16px; border-radius:4px; border:none; margin-top:10px; }
+body { margin:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#0d0d0d; color:#fff; }
+header { padding:20px; text-align:center; background:#111; position:sticky; top:0; z-index:10; box-shadow:0 2px 5px rgba(0,0,0,0.5); }
+header h1 { margin:0; font-size:2rem; color:#e50914; }
+input#search { width:60%; max-width:600px; padding:12px 20px; font-size:16px; border-radius:30px; border:none; outline:none; margin-top:10px; background:#222; color:#fff; }
 #trending { padding:20px; }
-#trending h2 { margin-bottom:15px; }
+#trending h2 { margin-bottom:15px; color:#fff; font-size:1.5rem; border-bottom:2px solid #e50914; display:inline-block; }
 #results, #trending-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:15px; }
-.card { background:#222; padding:10px; border-radius:6px; cursor:pointer; transition: transform .2s, box-shadow .2s; }
-.card:hover { transform: scale(1.05); box-shadow:0 0 15px #fff; }
-.card img { width:100%; border-radius:4px; }
-.card h3 { font-size:14px; margin-top:8px; text-align:center; }
+.card { background:#1a1a1a; padding:0; border-radius:10px; cursor:pointer; overflow:hidden; transition: transform .3s, box-shadow .3s; }
+.card:hover { transform: scale(1.05); box-shadow:0 0 20px #e50914; }
+.card img { width:100%; height:270px; object-fit:cover; transition: transform .3s; }
+.card:hover img { transform: scale(1.1); }
+.card h3 { font-size:14px; margin:10px; text-align:center; color:#fff; }
 .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); justify-content:center; align-items:center; z-index:1000; }
-.modal video { width:80%; max-height:80%; }
-.modal .close { position:absolute; top:20px; right:30px; font-size:30px; cursor:pointer; color:#fff; }
+.modal video { width:80%; max-height:80%; border-radius:10px; box-shadow:0 0 20px #e50914; }
+.modal .close { position:absolute; top:20px; right:30px; font-size:40px; cursor:pointer; color:#fff; font-weight:bold; }
+@media(max-width:600px){
+  .card img { height:200px; }
+  input#search { width:90%; }
+}
 </style>
 </head>
 <body>
@@ -34,7 +39,7 @@ input#search { width:60%; padding:10px; font-size:16px; border-radius:4px; borde
 </header>
 
 <section id="trending">
-<h2>Trending Movies</h2>
+<h2>Trending</h2>
 <div id="trending-list"></div>
 </section>
 
@@ -53,7 +58,6 @@ const modal = document.getElementById('modal');
 const player = document.getElementById('player');
 const closeBtn = document.getElementById('closeBtn');
 
-// Trending movies - known public IA movies
 const trendingMovies = [
   {identifier:'the-last-hunter-1980-film', title:'The Last Hunter'},
   {identifier:'alien-1979', title:'Alien'},
@@ -61,10 +65,8 @@ const trendingMovies = [
   {identifier:'night-of-the-living-dead-1968', title:'Night of the Living Dead'}
 ];
 
-// Fetch metadata and pick first playable file dynamically
 async function renderTrending() {
   trendingDiv.innerHTML = '';
-
   trendingMovies.forEach(async (m) => {
     try {
       const url = \`https://archive.org/metadata/\${m.identifier}\`;
@@ -73,7 +75,6 @@ async function renderTrending() {
       const files = data.files || [];
       const playable = files.find(f => f.name && (f.name.endsWith('.mp4') || f.name.endsWith('.ogv')));
       if (!playable) return;
-
       const videoUrl = \`https://archive.org/download/\${m.identifier}/\${playable.name}\`;
 
       const card = document.createElement('div');
@@ -90,7 +91,7 @@ async function renderTrending() {
       trendingDiv.appendChild(card);
 
     } catch (err) {
-      console.error(\`Failed to load trending movie: \${m.identifier}\`, err);
+      console.error(\`Trending load failed: \${m.identifier}\`, err);
     }
   });
 }
@@ -111,14 +112,11 @@ async function searchMovies(query) {
 
 function renderResults(movies) {
   resultsDiv.innerHTML = '';
-
   movies.forEach(m => {
     if (!m.files) return;
     const playable = m.files.find(f => f.name && (f.name.endsWith('.mp4') || f.name.endsWith('.ogv')));
     if (!playable) return;
-
     const videoUrl = \`https://archive.org/download/\${m.identifier}/\${playable.name}\`;
-
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = \`
@@ -132,7 +130,6 @@ function renderResults(movies) {
     };
     resultsDiv.appendChild(card);
   });
-
   if (resultsDiv.children.length === 0) {
     resultsDiv.innerHTML = '<p style="text-align:center">No results found.</p>';
   }
@@ -149,7 +146,6 @@ closeBtn.onclick = () => {
   modal.style.display = 'none';
 };
 
-// Render trending on page load
 renderTrending();
 </script>
 </body>
