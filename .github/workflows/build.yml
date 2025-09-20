@@ -1,0 +1,81 @@
+name: Build IsleofWatch Site
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: npm install axios fs-extra
+
+    - name: Generate Site
+      run: |
+        node <<'EOF'
+        const fs = require('fs-extra');
+        const axios = require('axios');
+
+        const OUTPUT_DIR = 'site';
+        fs.ensureDirSync(OUTPUT_DIR);
+
+        async function fetchMovies() {
+          const url = 'https://archive.org/advancedsearch.php?q=collection:(movies)&fl[]=identifier,title,description,downloads&rows=20&page=1&output=json';
+          const res = await axios.get(url);
+          return res.data.response.docs;
+        }
+
+        async function generate() {
+          const movies = await fetchMovies();
+          let html = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>IsleOfWatch</title>
+            <style>
+              body { font-family: Arial; background:#111; color:#fff; margin:0; padding:0; }
+              .movie { margin:20px; padding:10px; border:1px solid #333; }
+              a { color:#0af; text-decoration:none; }
+              video { max-width:100%; margin-top:10px; }
+            </style>
+          </head>
+          <body>
+            <h1>IsleOfWatch - Free Movies</h1>
+          `;
+
+          movies.forEach(m => {
+            const file = Object.keys(m.downloads || {})[0] || '';
+            const videoUrl = file ? `https://archive.org/download/${m.identifier}/${file}` : '';
+            html += `
+              <div class="movie">
+                <h2>${m.title}</h2>
+                <p>${m.description || 'No description available'}</p>
+                ${videoUrl ? `<video controls><source src="${videoUrl}" type="video/mp4"></video>` : ''}
+                <p><a href="https://archive.org/details/${m.identifier}" target="_blank">View on Internet Archive</a></p>
+              </div>
+            `;
+          });
+
+          html += `</body></html>`;
+          fs.writeFileSync(`${OUTPUT_DIR}/index.html`, html, 'utf-8');
+        }
+
+        generate();
+        EOF
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v6
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: site
