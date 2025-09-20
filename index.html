@@ -2,90 +2,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>IsleofWatch</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { margin:0; font-family: Arial, sans-serif; background:#111; color:#fff; }
-    header { padding:20px; text-align:center; background:#222; }
-    input#search { width:60%; padding:10px; font-size:16px; border-radius:4px; border:none; }
-    section { padding:20px; }
-    h2 { margin:10px 0; }
-    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:15px; }
-    .card { background:#222; padding:10px; border-radius:6px; cursor:pointer; transition: transform .2s; text-align:center; }
-    .card:hover { transform: scale(1.05); }
-    .card img { width:100%; border-radius:4px; }
-    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); justify-content:center; align-items:center; z-index:1000; }
-    .modal iframe { width:80%; height:80%; border:none; }
-    .modal .close { position:absolute; top:20px; right:30px; font-size:30px; cursor:pointer; color:#fff; }
-  </style>
+<meta charset="UTF-8">
+<title>IsleofWatch</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { margin:0; font-family: Arial, sans-serif; background:#111; color:#fff; }
+  header { padding:20px; text-align:center; background:#222; }
+  input#search { width:60%; padding:10px; font-size:16px; border-radius:4px; border:none; }
+  section { padding:20px; }
+  h2 { margin:10px 0; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:15px; }
+  .card { background:#222; padding:10px; border-radius:6px; cursor:pointer; transition: transform .2s; text-align:center; }
+  .card:hover { transform: scale(1.05); }
+  .card img { width:100%; border-radius:4px; }
+  .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); justify-content:center; align-items:center; z-index:1000; }
+  .modal iframe { width:80%; height:80%; border:none; }
+  .modal .close { position:absolute; top:20px; right:30px; font-size:30px; cursor:pointer; color:#fff; }
+</style>
 </head>
 <body>
-  <header>
-    <h1>IsleofWatch</h1>
-    <input type="text" id="search" placeholder="Search for movies or series...">
-  </header>
+<header>
+  <h1>IsleofWatch</h1>
+  <input type="text" id="search" placeholder="Search for movies, anime or TV series...">
+</header>
+<div id="content"></div>
 
-  <section>
-    <h2>Trending Now</h2>
-    <div class="grid" id="trending"></div>
-  </section>
-
-  <section>
-    <h2>Sci-Fi Classics</h2>
-    <div class="grid" id="scifi"></div>
-  </section>
-
-  <section>
-    <h2>Horror Cult</h2>
-    <div class="grid" id="horror"></div>
-  </section>
-
-  <section>
-    <h2>Comedy Oldies</h2>
-    <div class="grid" id="comedy"></div>
-  </section>
-
-  <div class="modal" id="modal">
-    <span class="close" id="closeBtn">&times;</span>
-    <iframe id="player" allowfullscreen></iframe>
-  </div>
+<div class="modal" id="modal">
+  <span class="close" id="closeBtn">&times;</span>
+  <iframe id="player" allowfullscreen></iframe>
+</div>
 
 <script>
 const modal = document.getElementById('modal');
 const player = document.getElementById('player');
 const closeBtn = document.getElementById('closeBtn');
 const searchInput = document.getElementById('search');
+const contentDiv = document.getElementById('content');
 
-// Load collections by name
-async function loadCollection(collection, elementId, sort = "") {
+async function loadMovies() {
   try {
-    let url = `https://archive.org/advancedsearch.php?q=collection:${collection}+mediatype:movies&fl[]=identifier,title&rows=12&page=1&output=json`;
-    if (sort) {
-      url = `https://archive.org/advancedsearch.php?q=mediatype:movies&fl[]=identifier,title&sort[]=${sort}&rows=12&page=1&output=json`;
-    }
-    const res = await fetch(url);
-    const data = await res.json();
-    const movies = data.response.docs || [];
-    const container = document.getElementById(elementId);
-    container.innerHTML = '';
+    const res = await fetch('movies.json');
+    const movies = await res.json();
+
+    // Sort by releaseDate descending (latest first)
+    movies.sort((a,b) => new Date(b.releaseDate) - new Date(a.releaseDate));
+
+    // Group by category
+    const sections = {};
     movies.forEach(m => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = `
-        <img src="https://archive.org/services/img/${m.identifier}" alt="${m.title}">
-        <h3>${m.title}</h3>
-      `;
-      card.onclick = () => playMovie(m.identifier);
-      container.appendChild(card);
+      if (!sections[m.category]) sections[m.category] = [];
+      sections[m.category].push(m);
     });
+
+    contentDiv.innerHTML = '';
+    for (const category in sections) {
+      const sectionEl = document.createElement('section');
+      sectionEl.innerHTML = `<h2>${category}</h2>`;
+      const grid = document.createElement('div');
+      grid.className = 'grid';
+      sections[category].forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${m.thumbnail}" alt="${m.title}">
+          <h3>${m.title}</h3>
+        `;
+        card.onclick = () => playMovie(m.embed);
+        grid.appendChild(card);
+      });
+      sectionEl.appendChild(grid);
+      contentDiv.appendChild(sectionEl);
+    }
+
   } catch (err) {
-    console.error("Error loading", collection, err);
+    contentDiv.innerHTML = '<p style="text-align:center">Error loading content.</p>';
+    console.error(err);
   }
 }
 
-function playMovie(identifier) {
-  player.src = `https://archive.org/embed/${identifier}`;
+function playMovie(url) {
+  player.src = url;
   modal.style.display = 'flex';
 }
 
@@ -94,44 +90,18 @@ closeBtn.onclick = () => {
   modal.style.display = 'none';
 };
 
-// Search functionality
-searchInput.addEventListener('keyup', async e => {
-  if(e.key === 'Enter') {
-    const query = searchInput.value.trim();
-    if (!query) return;
-    const resultsDiv = document.getElementById('scifi');
-    resultsDiv.innerHTML = '<p style="grid-column:1/-1;text-align:center">Loading...</p>';
-    try {
-      const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}+mediatype:movies&fl[]=identifier,title&rows=20&page=1&output=json`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const movies = data.response.docs || [];
-      resultsDiv.innerHTML = '';
-      if (movies.length === 0) {
-        resultsDiv.innerHTML = '<p style="grid-column:1/-1;text-align:center">No results found.</p>';
-        return;
-      }
-      movies.forEach(m => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <img src="https://archive.org/services/img/${m.identifier}" alt="${m.title}">
-          <h3>${m.title}</h3>
-        `;
-        card.onclick = () => playMovie(m.identifier);
-        resultsDiv.appendChild(card);
-      });
-    } catch (err) {
-      resultsDiv.innerHTML = '<p style="grid-column:1/-1;text-align:center">Error fetching results.</p>';
-    }
-  }
+// Search
+searchInput.addEventListener('keyup', () => {
+  const query = searchInput.value.toLowerCase();
+  const cards = document.querySelectorAll('.card');
+  cards.forEach(card => {
+    const title = card.querySelector('h3').textContent.toLowerCase();
+    card.style.display = title.includes(query) ? '' : 'none';
+  });
 });
 
 // Initial load
-loadCollection("movies", "trending", "downloads+desc"); // trending by most downloaded
-loadCollection("sciencefiction", "scifi");
-loadCollection("horror", "horror");
-loadCollection("comedyfilms", "comedy");
+loadMovies();
 </script>
 </body>
 </html>
