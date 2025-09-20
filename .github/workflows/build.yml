@@ -10,20 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Checkout your repo
     - uses: actions/checkout@v3
 
-    # Step 2: Install Node.js
     - uses: actions/setup-node@v3
       with:
         node-version: '20'
 
-    # Step 3: Install required packages
     - name: Install dependencies
-      run: |
-        npm install axios fs-extra
+      run: npm install axios fs-extra
 
-    # Step 4: Generate site HTML
     - name: Generate Site
       run: |
         node <<'EOF'
@@ -83,9 +78,8 @@ jobs:
         generate();
         EOF
 
-    # Step 5: Deploy to GitHub Pages
     - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v6
+      uses: peaceiris/actions-gh-pages@v5
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: site
