@@ -52,10 +52,9 @@ async function searchMovies(query) {
 function renderResults(movies) {
   resultsDiv.innerHTML = '';
   movies.forEach(m => {
-    const files = m.files || [];
-    const mp4 = files.find(f => f.name && f.name.endsWith('.mp4'));
-    if(!mp4) return;
-    const videoUrl = `https://archive.org/download/${m.identifier}/${mp4.name}`;
+    const file = Object.keys(m.downloads || {})[0] || '';
+    const videoUrl = file ? `https://archive.org/download/${m.identifier}/${file}` : '';
+    if(!videoUrl) return;
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
